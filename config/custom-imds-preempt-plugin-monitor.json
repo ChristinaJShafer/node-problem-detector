@@ -1,0 +1,29 @@
+{
+  "plugin": "custom",
+  "pluginConfig": {
+    "invoke_interval": "1s",
+    "timeout": "5s",
+    "max_output_length": 80,
+    "concurrency": 3,
+    "enable_message_change_based_condition_update": false
+  },
+  "source": "imds-scheduled-event-preempt-custom-plugin-monitor",
+  "metricsReporting": true,
+  "conditions": [
+    {
+      "type": "ScheduledEvent",
+      "reason": "NoScheduledEvent",
+      "message": "No scheduled events from IMDS"
+    }
+  ],
+  "rules": [
+    
+    {
+      "type": "permanent",
+      "condition": "ScheduledEvent",
+      "reason": "Scheduled Event for EventType=Preempt",
+      "path": "./config/plugin/check_imds_event.sh -t Preempt",
+      "timeout": "30s"
+    }
+  ]
+}
