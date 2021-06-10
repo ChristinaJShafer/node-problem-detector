@@ -89,7 +89,7 @@ data:
             }
         ]
     }
-  custom-scheduledevents-plugin-monitor.json | 
+  custom-scheduledevents-plugin-monitor.json: | 
     {
         "plugin": "custom",
         "pluginConfig": {
