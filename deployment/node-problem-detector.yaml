@@ -80,6 +80,10 @@ spec:
             path: kernel-monitor.json
           - key: docker-monitor.json
             path: docker-monitor.json
+          - key: custom-scheduledevents-plugin-monitor.json
+            path: custom-scheduledevents-plugin-monitor.json
+          - key: custom-scheduledevents-preempt-plugin-monitor.json
+            path: custom-scheduledevents-preempt-plugin-monitor.json
       tolerations:
         - effect: NoSchedule
           operator: Exists

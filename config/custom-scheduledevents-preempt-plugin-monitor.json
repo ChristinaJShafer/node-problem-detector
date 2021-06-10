@@ -7,7 +7,7 @@
     "concurrency": 1,
     "enable_message_change_based_condition_update": true
   },
-  "source": "scheduled-event-preempt-custom-plugin-monitor",
+  "source": "custom-scheduledevents-preempt-plugin-monitor",
   "metricsReporting": true,
   "conditions": [
     {
