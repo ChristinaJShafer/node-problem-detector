@@ -1,0 +1,64 @@
+{
+  "plugin": "custom",
+  "pluginConfig": {
+    "invoke_interval": "60s",
+    "timeout": "5s",
+    "max_output_length": 80,
+    "concurrency": 3,
+    "enable_message_change_based_condition_update": true
+  },
+  "source": "scheduled-event-custom-plugin-monitor",
+  "metricsReporting": true,
+  "conditions": [
+    {
+      "type": "VMFreezeEventScheduled",
+      "reason": "NoVMFreezeEventScheduled",
+      "message": "VM has no scheduled Freeze event"
+    },
+    {
+      "type": "VMRebootEventScheduled",
+      "reason": "NoVMRebootEventScheduled",
+      "message": "VM has no scheduled Reboot event"
+    },
+    {
+      "type": "VMRedeployEventScheduled",
+      "reason": "NoVMRedeployEventScheduled",
+      "message": "VM has no scheduled Redeploy event"
+    },
+    {
+      "type": "VMTerminateEventScheduled",
+      "reason": "NoVMTerminateEventScheduled",
+      "message": "VM has no scheduled Terminate event"
+    }
+  ],
+  "rules": [
+    {
+      "type": "permanent",
+      "condition": "VMFreezeEventScheduled",
+      "reason": "VMFreezeEventScheduled",
+      "path": "./config/plugin/check_scheduledevent.sh -t Freeze",
+      "timeout": "30s"
+    },
+    {
+      "type": "permanent",
+      "condition": "VMRebootEventScheduled",
+      "reason": "VMRebootEventScheduled",
+      "path": "./config/plugin/check_scheduledevent.sh -t Reboot",
+      "timeout": "30s"
+    },
+    {
+      "type": "permanent",
+      "condition": "VMRedeployEventScheduled",
+      "reason": "VMRedeployEventScheduled",
+      "path": "./config/plugin/check_scheduledevent.sh -t Redeploy",
+      "timeout": "30s"
+    },
+    {
+      "type": "permanent",
+      "condition": "VMTerminateEventScheduled",
+      "reason": "VMTerminateEventScheduled",
+      "path": "./config/plugin/check_scheduledevent.sh -t Terminate",
+      "timeout": "30s"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "plugin": "custom",
+  "pluginConfig": {
+    "invoke_interval": "1s",
+    "timeout": "5s",
+    "max_output_length": 80,
+    "concurrency": 1,
+    "enable_message_change_based_condition_update": true
+  },
+  "source": "scheduled-event-preempt-custom-plugin-monitor",
+  "metricsReporting": true,
+  "conditions": [
+    {
+      "type": "VMPreemptEventScheduled",
+      "reason": "NoVMPreemptEventScheduled",
+      "message": "VM has no scheduled Preempt event"
+    }
+  ],
+  "rules": [
+    
+    {
+      "type": "permanent",
+      "condition": "VMPreemptEventScheduled",
+      "reason": "VMPreemptEventScheduled",
+      "path": "./config/plugin/check_scheduledevent.sh -t Preempt",
+      "timeout": "5s"
+    }
+  ]
+}
