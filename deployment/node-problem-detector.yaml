@@ -59,7 +59,7 @@ spec:
           mountPath: /etc/localtime
           readOnly: true
         - name: config
-          mountPath: /config
+          mountPath: /config/plugin
           readOnly: true
       volumes:
       - name: log
