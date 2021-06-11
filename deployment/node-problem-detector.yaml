@@ -28,10 +28,10 @@ spec:
         command:
         - /node-problem-detector
         - --logtostderr
-        - --config.system-log-monitor=/config/kernel-monitor.json,/config/docker-monitor.json,
-        - --config.custom-plugin-monitor=/config/custom-scheduledevents-plugin-monitor.json,/config/custom-scheduledevents-preempt-monitor.json
+        - --config.system-log-monitor=/config/kernel-monitor.json,/config/docker-monitor.json
+        - --config.custom-plugin-monitor=config/custom-scheduledevents-plugin-monitor.json,config/custom-scheduledevents-preempt-monitor.json
         #image: k8s.gcr.io/node-problem-detector/node-problem-detector:v0.8.7
-        image: cljshafer/node-problem-detector:latest
+        image: cljshafer/node-problem-detector:v0.8.8-2-gf27c3a8-dirty
         resources:
           limits:
             cpu: 10m
@@ -62,9 +62,7 @@ spec:
         - name: config
           mountPath: /config
           readOnly: true
-        - name: plugin
-          mountPath: /config/plugin
-          readOnly: true
+
       volumes:
       - name: log
         # Config `log` to your system log directory

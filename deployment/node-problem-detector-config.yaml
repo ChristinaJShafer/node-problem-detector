@@ -154,6 +154,35 @@ data:
             }
         ]
     }
+  custom-scheduledevents-preempt-plugin-monitor.json: |
+    {
+        "plugin": "custom",
+        "pluginConfig": {
+            "invoke_interval": "1s",
+            "timeout": "5s",
+            "max_output_length": 80,
+            "concurrency": 1,
+            "enable_message_change_based_condition_update": false
+    },
+        "source": "custom-scheduledevents-preempt-plugin-monitor",
+        "metricsReporting": true,
+        "conditions": [
+            {
+                "type": "VMPreemptEventScheduled",
+                "reason": "NoVMPreemptEventScheduled",
+                "message": "VM has no scheduled Preempt event"
+            }
+        ],
+        "rules": [
+            {
+                "type": "permanent",
+                "condition": "VMPreemptEventScheduled",
+                "reason": "VMPreemptEventScheduled",
+                "path": "./config/plugin/check_scheduledevent.sh -t Preempt",
+                "timeout": "5s"
+            }
+        ]
+    }
 kind: ConfigMap
 metadata:
   name: node-problem-detector-config
