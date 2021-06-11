@@ -62,6 +62,9 @@ spec:
         - name: config
           mountPath: /config
           readOnly: true
+        - name: config-plugin
+          mountPath: /config/plugin
+          readOnly: true
 
       volumes:
       - name: log
@@ -86,6 +89,9 @@ spec:
             path: custom-scheduledevents-plugin-monitor.json
           - key: custom-scheduledevents-preempt-plugin-monitor.json
             path: custom-scheduledevents-preempt-plugin-monitor.json
+      - name: config-plugin
+        configMap:
+          name: node-problem-detector-config
       tolerations:
         - effect: NoSchedule
           operator: Exists
