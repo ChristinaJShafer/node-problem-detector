@@ -22,7 +22,7 @@
       "type": "permanent",
       "condition": "VMPreemptEventScheduled",
       "reason": "VMPreemptEventScheduled",
-      "path": "./config/plugin/check_scheduledevent.sh -t Preempt",
+      "path": "./config/plugin/check_preempt.sh",
       "timeout": "5s"
     }
   ]

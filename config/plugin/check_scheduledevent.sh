@@ -8,9 +8,9 @@ readonly OK=0
 readonly NOTOK=1
 readonly UNKNOWN=2
 
-# IMDS_COMMAND='./fakeIMDS.sh $EVENT_TYPE Scheduled'
+ IMDS_COMMAND='./fakeIMDS.sh $EVENT_TYPE Scheduled'
 # IMDS_COMMAND='./fakeIMDS.sh None None'
-IMDS_COMMAND='curl -H Metadata:true --noproxy "*" "http://169.254.169.254/metadata/instance?api-version=2021-02-01"'
+# IMDS_COMMAND='curl -H Metadata:true --noproxy "*" "http://169.254.169.254/metadata/instance?api-version=2021-02-01"'
 
 # parse which event type we are looking for
 while getopts 't:' OPTION; do

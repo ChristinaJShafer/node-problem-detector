@@ -36,28 +36,28 @@
       "type": "permanent",
       "condition": "VMFreezeEventScheduled",
       "reason": "VMFreezeEventScheduled",
-      "path": "./config/plugin/check_scheduledevent.sh -t Freeze",
+      "path": "./config/plugin/check_freeze.sh",
       "timeout": "3s"
     },
     {
       "type": "permanent",
       "condition": "VMRebootEventScheduled",
       "reason": "VMRebootEventScheduled",
-      "path": "./config/plugin/check_scheduledevent.sh -t Reboot",
+      "path": "./config/plugin/check_reboot.sh",
       "timeout": "3s"
     },
     {
       "type": "permanent",
       "condition": "VMRedeployEventScheduled",
       "reason": "VMRedeployEventScheduled",
-      "path": "./config/plugin/check_scheduledevent.sh -t Redeploy",
+      "path": "./config/plugin/check_redeploy.sh",
       "timeout": "3s"
     },
     {
       "type": "permanent",
       "condition": "VMTerminateEventScheduled",
       "reason": "VMTerminateEventScheduled",
-      "path": "./config/plugin/check_scheduledevent.sh -t Terminate",
+      "path": "./config/plugin/check_terminate.sh",
       "timeout": "3s"
     }
   ]

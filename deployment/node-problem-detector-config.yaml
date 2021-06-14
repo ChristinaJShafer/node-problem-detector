@@ -128,28 +128,28 @@ data:
                 "type": "permanent",
                 "condition": "VMFreezeEventScheduled",
                 "reason": "VMFreezeEventScheduled",
-                "path": "./config/plugin/check_scheduledevent.sh -t Freeze",
+                "path": "./config/plugin/check_freeze.sh",
                 "timeout": "3s"
             },
             {
                 "type": "permanent",
                 "condition": "VMRebootEventScheduled",
                 "reason": "VMRebootEventScheduled",
-                "path": "./config/plugin/check_scheduledevent.sh -t Reboot",
+                "path": "./config/plugin/check_reboot.sh",
                 "timeout": "3s"
             },
             {
                 "type": "permanent",
                 "condition": "VMRedeployEventScheduled",
                 "reason": "VMRedeployEventScheduled",
-                "path": "./config/plugin/check_scheduledevent.sh -t Redeploy",
+                "path": "./config/plugin/check_redeploy.sh",
                 "timeout": "3s"
             },
             {
                 "type": "permanent",
                 "condition": "VMTerminateEventScheduled",
                 "reason": "VMTerminateEventScheduled",
-                "path": "./config/plugin/check_scheduledevent.sh -t Terminate",
+                "path": "./config/plugin/check_terminate.sh",
                 "timeout": "3s"
             }
         ]
@@ -178,7 +178,7 @@ data:
                 "type": "permanent",
                 "condition": "VMPreemptEventScheduled",
                 "reason": "VMPreemptEventScheduled",
-                "path": "./config/plugin/check_scheduledevent.sh -t Preempt",
+                "path": "./config/plugin/check_preempt.sh",
                 "timeout": "5s"
             }
         ]
@@ -194,9 +194,16 @@ data:
     readonly NOTOK=1
     readonly UNKNOWN=2
 
-    # IMDS_COMMAND='./fakeIMDS.sh $EVENT_TYPE Scheduled'
-    # IMDS_COMMAND='./fakeIMDS.sh None None'
-    IMDS_COMMAND='curl -H Metadata:true --noproxy "*" "http://169.254.169.254/metadata/instance?api-version=2021-02-01"'
+    sudo apt update
+    sudo apt upgrade
+    sudo apt install curl
+    sudo apt install jq
+    
+
+
+    # IMDS_COMMAND='./config/plugin/fakeIMDS.sh $EVENT_TYPE Scheduled'
+    # IMDS_COMMAND='.config/plugin/fakeIMDS.sh None None'
+     IMDS_COMMAND='curl -H Metadata:true --noproxy "*" "http://169.254.169.254/metadata/instance?api-version=2021-02-01"'
 
     # parse which event type we are looking for
     while getopts 't:' OPTION; do
@@ -259,7 +266,75 @@ data:
     else
     exit $OK
     fi
+  check_freeze.sh: |
+    #!/bin/bash
+    check_event= $( echo ./config/plugin/check_scheduledevent.sh -t Freeze)
+    exit $?
+  check_preempt.sh: |
+    #!/bin/bash
+    check_event= $( echo ./config/plugin/check_scheduledevent.sh -t Preempt)
+    exit $?
+  check_reboot.sh: |
+    #!/bin/bash
+    check_event= $( echo ./config/plugin/check_scheduledevent.sh -t Reboot)
+    exit $?
+  check_redeploy.sh: |
+    #!/bin/bash
+    check_event= $( echo ./config/plugin/check_scheduledevent.sh -t Redeploy)
+    exit $?
+  check_terminate.sh: |
+    #!/bin/bash
+    check_event= $( echo ./config/plugin/check_scheduledevent.sh -t Terminate)
+    exit $?
+  fakeIMDS.sh: |
+    #!/usr/bin/env python3
 
+    import argparse
+    import random
+    import json
+    from datetime import datetime,timedelta
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("EventType")
+    parser.add_argument("EventStatus")
+    args = parser.parse_args()
+
+    nowPlusTwenty=datetime.utcnow() + timedelta(minutes=20)
+    event_dict=dict()
+    scheduledEvent_dict=dict()
+    scheduledEvent_dict["DocumentIncarnation"]="IncarnationID"
+
+    def createRandomDict(): 
+        new_event=dict()
+        randomTime=datetime.utcnow() + timedelta(minutes=random.randint(5,45))
+        event_list=["Freeze","Preempt","Reboot","Redeploy","Terminate"]
+        new_event["EventID"]="Event " +str(random.randint(1, 100))
+        new_event["EventType"] = event_list[random.randint(0, 4)]
+        new_event["ResourceType"]="VirtualMachine"
+        new_event["Resources"]=["resouce1","resource2"]
+        new_event["EventStatus"] = "Scheduled"
+        new_event["NotBefore"] = randomTime.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        new_event["Description"] = "Event Description"
+        new_event["EventSource"] = "Platform"
+        return new_event
+
+
+    if (args.EventType !="None"):
+        event_dict["EventID"]="Event " +str(random.randint(1, 100))
+        event_dict["EventType"] = args.EventType
+        event_dict["ResourceType"]="VirtualMachine"
+        event_dict["Resources"]=["resouce1","resource2"]
+        event_dict["EventStatus"] = args.EventStatus
+        event_dict["NotBefore"] = nowPlusTwenty.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        if (args.EventStatus=="Started"): event_dict["NotBefore"]=datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
+        event_dict["Description"] = "Event Description"
+        event_dict["EventSource"] = "Platform"
+        scheduledEvent_dict["Events"]=[event_dict, createRandomDict(), createRandomDict()]
+    event_json = json.dumps(scheduledEvent_dict)
+    print (event_json)
+
+
+#print(f"{station}.{sensor} current value: {current_value}")
 kind: ConfigMap
 metadata:
   name: node-problem-detector-config
