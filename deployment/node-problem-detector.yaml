@@ -108,9 +108,6 @@ spec:
             path: check_redeploy.sh
           - key: check_terminate.sh
             path: check_terminate.sh
-          - key: fakeIMDS.sh
-            path: fakeIMDS.sh
-
 
       tolerations:
         - effect: NoSchedule

@@ -179,7 +179,7 @@ data:
                 "condition": "VMPreemptEventScheduled",
                 "reason": "VMPreemptEventScheduled",
                 "path": "./config/plugin/check_preempt.sh",
-                "timeout": "5s"
+                "timeout": "15s"
             }
         ]
     }
@@ -194,56 +194,43 @@ data:
     readonly NOTOK=1
     readonly UNKNOWN=2
 
- 
-    # IMDS_COMMAND='./config/plugin/fakeIMDS.sh $EVENT_TYPE Scheduled'
-    # IMDS_COMMAND='.config/plugin/fakeIMDS.sh None None'
-     IMDS_COMMAND=' curl -H Metadata:true --noproxy "*" http://169.254.169.254/metadata/instance?api-version=2021-02-01&format=json '
+    IMDS_COMMAND=' curl -H Metadata:true --noproxy "*" http://169.254.169.254/metadata/instance?api-version=2021-02-01&format=json '
+    content=$($IMDS_COMMAND)
 
-    # parse which event type we are looking for
-    while getopts 't:' OPTION; do
-        case "$OPTION" in
-        t)
-        EVENT_TYPE="$OPTARG"    
-        ;;
-        ?)
-        echo "You must pass flag -t <eventType> (in title case) to plugin"
-        exit $UNKNOWN   #event_type not passed
-    esac
+    # parse event type (t) and sleep time (s)
+    while getopts 's:t:' OPTION; do
+      case "$OPTION" in
+        s) 
+         sleep $OPTARG  #redeploy =1s, reboot = 2s, freeze = 3s
+         ;;
+       t)
+         EVENT_TYPE="$OPTARG"    
+         ;;
+       ?)
+         echo "You must pass flag -t <eventType> (in title case) to plugin"
+         exit $UNKNOWN   #event_type not passed
+      esac
     done
 
-    #filter for requested event type with nearest NotBefore time, add sleep time to stagger IMDS
+    #filter for requested event type with nearest NotBefore time
     case "$EVENT_TYPE" in
         "Preempt")
-        content=$($IMDS_COMMAND) 
         eventWithCorrectType=$(echo $content | jq '[.Events[]? | {EventType,EventStatus,NotBefore}| select(.EventType=="Preempt")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
         "Freeze")
-        sleep 1
-        content=$($IMDS_COMMAND) 
         eventWithCorrectType=$(echo $content | jq '[.Events[]? | {EventType,EventStatus,NotBefore}| select(.EventType=="Freeze")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
         "Reboot") 
-        sleep 2
-        content=$($IMDS_COMMAND)
         eventWithCorrectType=$(echo $content | jq '[.Events[]? | {EventType,EventStatus,NotBefore}| select(.EventType=="Reboot")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');; 
         "Redeploy") 
-        sleep 3
-        content=$($IMDS_COMMAND)
         eventWithCorrectType=$(echo $content | jq '[.Events[]? | {EventType,EventStatus,NotBefore}| select(.EventType=="Redeploy")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
         "Terminate") 
-        sleep 4
-        content=$($IMDS_COMMAND)
         eventWithCorrectType=$(echo $content | jq '[.Events[]? | {EventType,EventStatus,NotBefore}| select(.EventType=="Terminate")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
     esac
-
-
-    
-
+   
     # verify query connected
     if [ $? -ne 0 ]; then
         echo "IMDS query failed"
         exit $UNKNOWN
     fi
-
-
 
     #if no scheduled events of requested type are found, return OK 
     length=$(echo "$eventWithCorrectType" | jq length)
@@ -257,7 +244,6 @@ data:
     ev_status=$(echo "$eventWithCorrectType" | jq -r '[.[].EventStatus][0]')
     ev_notbefore=$(echo "$eventWithCorrectType" | jq -r '[.[].NotBefore][0]')
 
-
     # Output and result when requested event type is scheduled 
     if [ "$ev_type" = "$EVENT_TYPE" ]; then
     echo $ev_status ":" $ev_notbefore
@@ -267,7 +253,7 @@ data:
     fi
   check_freeze.sh: |
     #!/bin/bash
-    check_event= $( echo ./config/plugin/check_scheduledevent.sh -t Freeze)
+    check_event= $( echo ./config/plugin/check_scheduledevent.sh -t Freeze -s 3)
     exit $?
   check_preempt.sh: |
     #!/bin/bash
@@ -275,65 +261,17 @@ data:
     exit $?
   check_reboot.sh: |
     #!/bin/bash
-    check_event= $( echo ./config/plugin/check_scheduledevent.sh -t Reboot)
+    check_event= $( echo ./config/plugin/check_scheduledevent.sh -t Reboot -s 2)
     exit $?
   check_redeploy.sh: |
     #!/bin/bash
-    check_event= $( echo ./config/plugin/check_scheduledevent.sh -t Redeploy)
+    check_event= $( echo ./config/plugin/check_scheduledevent.sh -t Redeploy -s 1)
     exit $?
   check_terminate.sh: |
     #!/bin/bash
     check_event= $( echo ./config/plugin/check_scheduledevent.sh -t Terminate)
     exit $?
-  fakeIMDS.sh: |
-    #!/usr/bin/env python3
-
-    import argparse
-    import random
-    import json
-    from datetime import datetime,timedelta
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("EventType")
-    parser.add_argument("EventStatus")
-    args = parser.parse_args()
-
-    nowPlusTwenty=datetime.utcnow() + timedelta(minutes=20)
-    event_dict=dict()
-    scheduledEvent_dict=dict()
-    scheduledEvent_dict["DocumentIncarnation"]="IncarnationID"
-
-    def createRandomDict(): 
-        new_event=dict()
-        randomTime=datetime.utcnow() + timedelta(minutes=random.randint(5,45))
-        event_list=["Freeze","Preempt","Reboot","Redeploy","Terminate"]
-        new_event["EventID"]="Event " +str(random.randint(1, 100))
-        new_event["EventType"] = event_list[random.randint(0, 4)]
-        new_event["ResourceType"]="VirtualMachine"
-        new_event["Resources"]=["resouce1","resource2"]
-        new_event["EventStatus"] = "Scheduled"
-        new_event["NotBefore"] = randomTime.strftime("%a, %d %b %Y %H:%M:%S GMT")
-        new_event["Description"] = "Event Description"
-        new_event["EventSource"] = "Platform"
-        return new_event
-
-
-    if (args.EventType !="None"):
-        event_dict["EventID"]="Event " +str(random.randint(1, 100))
-        event_dict["EventType"] = args.EventType
-        event_dict["ResourceType"]="VirtualMachine"
-        event_dict["Resources"]=["resouce1","resource2"]
-        event_dict["EventStatus"] = args.EventStatus
-        event_dict["NotBefore"] = nowPlusTwenty.strftime("%a, %d %b %Y %H:%M:%S GMT")
-        if (args.EventStatus=="Started"): event_dict["NotBefore"]=datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
-        event_dict["Description"] = "Event Description"
-        event_dict["EventSource"] = "Platform"
-        scheduledEvent_dict["Events"]=[event_dict, createRandomDict(), createRandomDict()]
-    event_json = json.dumps(scheduledEvent_dict)
-    print (event_json)
-
-
-#print(f"{station}.{sensor} current value: {current_value}")
+  
 kind: ConfigMap
 metadata:
   name: node-problem-detector-config
