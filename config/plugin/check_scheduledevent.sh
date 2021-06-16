@@ -13,8 +13,12 @@ readonly UNKNOWN=2
 # IMDS_COMMAND='curl -H Metadata:true --noproxy "*" "http://169.254.169.254/metadata/instance?api-version=2021-02-01"'
 
 # parse which event type we are looking for
-while getopts 't:' OPTION; do
+while getopts 's:t:' OPTION; do
   case "$OPTION" in
+    s) 
+      sleep $OPTARG
+      echo "sleeping $OPTARG"
+      ;;
     t)
       EVENT_TYPE="$OPTARG"    
       ;;
@@ -28,23 +32,23 @@ done
 case "$EVENT_TYPE" in
     "Preempt")
     content=$($IMDS_COMMAND) 
-    eventWithCorrectType=$(echo $content | jq '[.Events[] | {EventType,EventStatus,NotBefore}| select(.EventType=="Preempt")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
+    eventWithCorrectType=$(echo $content | jq '[.Events[]? | {EventType,EventStatus,NotBefore}| select(.EventType=="Preempt")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
     "Freeze")
     sleep 1
     content=$($IMDS_COMMAND) 
-    eventWithCorrectType=$(echo $content | jq '[.Events[] | {EventType,EventStatus,NotBefore}| select(.EventType=="Freeze")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
+    eventWithCorrectType=$(echo $content | jq '[.Events[]? | {EventType,EventStatus,NotBefore}| select(.EventType=="Freeze")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
     "Reboot") 
     sleep 2
     content=$($IMDS_COMMAND)
-    eventWithCorrectType=$(echo $content | jq '[.Events[] | {EventType,EventStatus,NotBefore}| select(.EventType=="Reboot")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');; 
+    eventWithCorrectType=$(echo $content | jq '[.Events[]? | {EventType,EventStatus,NotBefore}| select(.EventType=="Reboot")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');; 
     "Redeploy") 
     sleep 3
     content=$($IMDS_COMMAND)
-    eventWithCorrectType=$(echo $content | jq '[.Events[] | {EventType,EventStatus,NotBefore}| select(.EventType=="Redeploy")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
+    eventWithCorrectType=$(echo $content | jq '[.Events[]? | {EventType,EventStatus,NotBefore}| select(.EventType=="Redeploy")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
     "Terminate") 
     sleep 4
     content=$($IMDS_COMMAND)
-    eventWithCorrectType=$(echo $content | jq '[.Events[] | {EventType,EventStatus,NotBefore}| select(.EventType=="Terminate")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
+    eventWithCorrectType=$(echo $content | jq '[.Events[]? | {EventType,EventStatus,NotBefore}| select(.EventType=="Terminate")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
 esac
 
 # verify query connected

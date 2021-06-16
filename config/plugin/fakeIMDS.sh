@@ -41,8 +41,9 @@ if (args.EventType !="None"):
     event_dict["Description"] = "Event Description"
     event_dict["EventSource"] = "Platform"
     scheduledEvent_dict["Events"]=[event_dict, createRandomDict(), createRandomDict()]
-event_json = json.dumps(scheduledEvent_dict)
-print (event_json)
-
+    event_json = json.dumps(scheduledEvent_dict)
+    print (event_json)
+else:
+    print ("null")
 
 #print(f"{station}.{sensor} current value: {current_value}")

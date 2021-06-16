@@ -18,6 +18,12 @@ FROM ${BASEIMAGE}
 MAINTAINER Random Liu <lantaol@google.com>
 
 RUN clean-install util-linux libsystemd0 bash
+RUN apt-get update -qq -y && \
+    apt-get upgrade -qq -y --no-install-recommends && \
+    apt-get install -qq -y --no-install-recommends \
+    bash ca-certificates curl gnupg2 jq wget \
+    && apt-get clean
+
 
 # Avoid symlink of /etc/localtime.
 RUN test -h /etc/localtime && rm -f /etc/localtime && cp /usr/share/zoneinfo/UTC /etc/localtime || true

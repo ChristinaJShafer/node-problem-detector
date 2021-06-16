@@ -94,7 +94,7 @@ data:
         "plugin": "custom",
         "pluginConfig": {
             "invoke_interval": "60s",
-            "timeout": "5s",
+            "timeout": "55s",
             "max_output_length": 80,
             "concurrency": 3,
             "enable_message_change_based_condition_update": true
@@ -129,28 +129,28 @@ data:
                 "condition": "VMFreezeEventScheduled",
                 "reason": "VMFreezeEventScheduled",
                 "path": "./config/plugin/check_freeze.sh",
-                "timeout": "3s"
+                "timeout": "55s"
             },
             {
                 "type": "permanent",
                 "condition": "VMRebootEventScheduled",
                 "reason": "VMRebootEventScheduled",
                 "path": "./config/plugin/check_reboot.sh",
-                "timeout": "3s"
+                "timeout": "55s"
             },
             {
                 "type": "permanent",
                 "condition": "VMRedeployEventScheduled",
                 "reason": "VMRedeployEventScheduled",
                 "path": "./config/plugin/check_redeploy.sh",
-                "timeout": "3s"
+                "timeout": "55s"
             },
             {
                 "type": "permanent",
                 "condition": "VMTerminateEventScheduled",
                 "reason": "VMTerminateEventScheduled",
                 "path": "./config/plugin/check_terminate.sh",
-                "timeout": "3s"
+                "timeout": "55s"
             }
         ]
     }
@@ -158,8 +158,8 @@ data:
     {
         "plugin": "custom",
         "pluginConfig": {
-            "invoke_interval": "1s",
-            "timeout": "5s",
+            "invoke_interval": "4s",
+            "timeout": "15s",
             "max_output_length": 80,
             "concurrency": 1,
             "enable_message_change_based_condition_update": false
@@ -194,16 +194,10 @@ data:
     readonly NOTOK=1
     readonly UNKNOWN=2
 
-    sudo apt update
-    sudo apt upgrade
-    sudo apt install curl
-    sudo apt install jq
-    
-
-
+ 
     # IMDS_COMMAND='./config/plugin/fakeIMDS.sh $EVENT_TYPE Scheduled'
     # IMDS_COMMAND='.config/plugin/fakeIMDS.sh None None'
-     IMDS_COMMAND='curl -H Metadata:true --noproxy "*" "http://169.254.169.254/metadata/instance?api-version=2021-02-01"'
+     IMDS_COMMAND=' curl -H Metadata:true --noproxy "*" http://169.254.169.254/metadata/instance?api-version=2021-02-01&format=json '
 
     # parse which event type we are looking for
     while getopts 't:' OPTION; do
@@ -221,30 +215,35 @@ data:
     case "$EVENT_TYPE" in
         "Preempt")
         content=$($IMDS_COMMAND) 
-        eventWithCorrectType=$(echo $content | jq '[.Events[] | {EventType,EventStatus,NotBefore}| select(.EventType=="Preempt")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
+        eventWithCorrectType=$(echo $content | jq '[.Events[]? | {EventType,EventStatus,NotBefore}| select(.EventType=="Preempt")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
         "Freeze")
         sleep 1
         content=$($IMDS_COMMAND) 
-        eventWithCorrectType=$(echo $content | jq '[.Events[] | {EventType,EventStatus,NotBefore}| select(.EventType=="Freeze")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
+        eventWithCorrectType=$(echo $content | jq '[.Events[]? | {EventType,EventStatus,NotBefore}| select(.EventType=="Freeze")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
         "Reboot") 
         sleep 2
         content=$($IMDS_COMMAND)
-        eventWithCorrectType=$(echo $content | jq '[.Events[] | {EventType,EventStatus,NotBefore}| select(.EventType=="Reboot")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');; 
+        eventWithCorrectType=$(echo $content | jq '[.Events[]? | {EventType,EventStatus,NotBefore}| select(.EventType=="Reboot")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');; 
         "Redeploy") 
         sleep 3
         content=$($IMDS_COMMAND)
-        eventWithCorrectType=$(echo $content | jq '[.Events[] | {EventType,EventStatus,NotBefore}| select(.EventType=="Redeploy")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
+        eventWithCorrectType=$(echo $content | jq '[.Events[]? | {EventType,EventStatus,NotBefore}| select(.EventType=="Redeploy")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
         "Terminate") 
         sleep 4
         content=$($IMDS_COMMAND)
-        eventWithCorrectType=$(echo $content | jq '[.Events[] | {EventType,EventStatus,NotBefore}| select(.EventType=="Terminate")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
+        eventWithCorrectType=$(echo $content | jq '[.Events[]? | {EventType,EventStatus,NotBefore}| select(.EventType=="Terminate")] | sort_by(.EventStatus) | reverse | sort_by(.NotBefore)');;
     esac
+
+
+    
 
     # verify query connected
     if [ $? -ne 0 ]; then
         echo "IMDS query failed"
         exit $UNKNOWN
     fi
+
+
 
     #if no scheduled events of requested type are found, return OK 
     length=$(echo "$eventWithCorrectType" | jq length)
