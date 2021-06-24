@@ -24,6 +24,19 @@ spec:
                     values:
                       - linux
       containers:
+      - name: imds-emulator
+        command: 
+        - "./fakeIMDS.sh" 
+        - "All"
+        - "Scheduled"
+        image: cljshafer/imds_emulator:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+        volumeMounts:
+        - name: app
+          mountPath: /fakeIMDS/app
+          readOnly: false
       - name: node-problem-detector
         command:
         - /node-problem-detector
@@ -108,6 +121,20 @@ spec:
             path: check_redeploy.sh
           - key: check_terminate.sh
             path: check_terminate.sh
+      - name: app
+        configMap:
+          name: node-problem-detector-config
+          defaultMode: 0777
+          items:
+          - key: fakeData.yaml
+            path: fakeData.yaml
+          - key: main.py
+            path: main.py
+          - key: fakeIMDS.sh
+            path: fakeIMDS.sh
+          
+
+
 
       tolerations:
         - effect: NoSchedule

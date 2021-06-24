@@ -159,7 +159,7 @@ data:
         "plugin": "custom",
         "pluginConfig": {
             "invoke_interval": "4s",
-            "timeout": "15s",
+            "timeout": "25s",
             "max_output_length": 80,
             "concurrency": 1,
             "enable_message_change_based_condition_update": false
@@ -179,7 +179,7 @@ data:
                 "condition": "VMPreemptEventScheduled",
                 "reason": "VMPreemptEventScheduled",
                 "path": "./config/plugin/check_preempt.sh",
-                "timeout": "15s"
+                "timeout": "25s"
             }
         ]
     }
@@ -194,7 +194,8 @@ data:
     readonly NOTOK=1
     readonly UNKNOWN=2
 
-    IMDS_COMMAND=' curl -H Metadata:true --noproxy "*" http://169.254.169.254/metadata/instance?api-version=2021-02-01&format=json '
+    IMDS_COMMAND=' curl -XGET localhost:5000'  
+    # IMDS_COMMAND=' curl -H Metadata:true --noproxy "*" http://169.254.169.254/metadata/instance?api-version=2021-02-01&format=json '
     content=$($IMDS_COMMAND)
 
     # parse event type (t) and sleep time (s)
@@ -271,7 +272,149 @@ data:
     #!/bin/bash
     check_event= $( echo ./config/plugin/check_scheduledevent.sh -t Terminate)
     exit $?
-  
+  fakeData.yaml: |
+    DocumentIncarnation: IncarnationID
+    Events:
+    - Description: Event Description
+        EventID: Event 89
+        EventSource: Platform
+        EventStatus: Scheduled
+        EventType: Freeze
+        NotBefore: Thu, 24 Jun 2021 00:30:45 GMT
+        ResourceType: VirtualMachine
+        Resources:
+        - resouce1
+        - resource2
+    - Description: Event Description
+        EventID: Event 80
+        EventSource: Platform
+        EventStatus: Scheduled
+        EventType: Preempt
+        NotBefore: Thu, 24 Jun 2021 00:30:45 GMT
+        ResourceType: VirtualMachine
+        Resources:
+        - resouce1
+        - resource2
+    - Description: Event Description
+        EventID: Event 71
+        EventSource: Platform
+        EventStatus: Scheduled
+        EventType: Reboot
+        NotBefore: Thu, 24 Jun 2021 00:30:45 GMT
+        ResourceType: VirtualMachine
+        Resources:
+        - resouce1
+        - resource2
+    - Description: Event Description
+        EventID: Event 32
+        EventSource: Platform
+        EventStatus: Scheduled
+        EventType: Redeploy
+        NotBefore: Thu, 24 Jun 2021 00:30:45 GMT
+        ResourceType: VirtualMachine
+        Resources:
+        - resouce1
+        - resource2
+    - Description: Event Description
+        EventID: Event 14
+        EventSource: Platform
+        EventStatus: Scheduled
+        EventType: Terminate
+        NotBefore: Thu, 24 Jun 2021 00:30:45 GMT
+        ResourceType: VirtualMachine
+        Resources:
+        - resouce1
+        - resource2
+  main.py: |
+    from flask import Flask, request
+    from datetime import datetime,timedelta
+    import random
+    import json
+    import yaml
+
+    app = Flask(__name__)
+
+    @app.route("/")
+    def hello():
+        with open("fakeData.yaml", "r") as yamlfile:
+            data=yaml.load(yamlfile, Loader=yaml.FullLoader)
+            print("yaml read successful")
+        event_json = json.dumps(data)
+        return event_json
+
+    @app.route('/metadata/scheduledevents', methods=['POST'])
+    def hello2():
+        if request.method == 'POST':
+
+            data = request.get_json(force=True)
+
+            print('Data Received: "{data}"'.format(data=data))
+            return data
+        return 444
+
+    if __name__ == "__main__":
+        app.run(host='0.0.0.0')
+  fakeIMDS.sh: |
+    #!/usr/bin/env python3
+
+    import argparse
+    import random
+    import json
+    import yaml
+    import sys
+    from datetime import datetime,timedelta
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("EventType")
+    parser.add_argument("EventStatus")
+    args = parser.parse_args()
+
+    nowPlusTwenty=datetime.utcnow() + timedelta(minutes=20) + timedelta(days=1)
+    event_dict=dict()
+    scheduledEvent_dict=dict()
+    scheduledEvent_dict["DocumentIncarnation"]="IncarnationID"
+    type_list=["Freeze","Preempt","Reboot","Redeploy","Terminate"]
+
+    def createRandomDict(): 
+        new_event=dict()
+        randomTime=datetime.utcnow() + timedelta(minutes=random.randint(5,45))
+        new_event["EventID"]="Event " +str(random.randint(1, 100))
+        new_event["EventType"] = type_list[random.randint(0, 4)]
+        new_event["ResourceType"]="VirtualMachine"
+        new_event["Resources"]=["resouce1","resource2"]
+        new_event["EventStatus"] = "Scheduled"
+        new_event["NotBefore"] = randomTime.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        new_event["Description"] = "Event Description"
+        new_event["EventSource"] = "Platform"
+        return new_event
+
+    def createTypeDict(event_type): 
+        new_event=dict()
+        new_event["EventID"]="Event " +str(random.randint(1, 100))
+        new_event["EventType"] = event_type
+        new_event["ResourceType"]="VirtualMachine"
+        new_event["Resources"]=["resouce1","resource2"]
+        new_event["EventStatus"] = args.EventStatus
+        new_event["NotBefore"] = nowPlusTwenty.strftime("%a, %d %b %Y %H:%M:%S GMT")
+        if (args.EventStatus=="Started"): new_event["NotBefore"]=datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S GMT")
+        new_event["Description"] = "Event Description"
+        new_event["EventSource"] = "Platform"
+        return new_event
+
+    if (args.EventType in ('All','all')):
+        event_dict_list=[]
+        for type in type_list:
+            event_dict_list.append(createTypeDict(type))
+        scheduledEvent_dict["Events"]=event_dict_list
+    elif (args.EventType in ('Random','random')):
+        scheduledEvent_dict["Events"]=[createRandomDict()]
+    elif (args.EventType !="None"):
+        scheduledEvent_dict["Events"]=[createTypeDict(args.EventType)]
+    event_json = json.dumps(scheduledEvent_dict)
+    print (event_json)
+    sys.stdout.write(event_json)
+    exit(0)
+
 kind: ConfigMap
 metadata:
   name: node-problem-detector-config
