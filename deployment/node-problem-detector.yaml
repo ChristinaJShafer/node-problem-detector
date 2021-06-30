@@ -14,6 +14,31 @@ spec:
       labels:
         app: node-problem-detector
     spec:
+      hostIPC: True
+      #hostNetwork: True
+      initContainers:
+      - name: imds-iptables
+        image: soarinferret/iptablesproxy
+        imagePullPolicy: Always
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+            - NET_RAW
+            drop:
+            - ALL
+          privileged: True
+        command:
+          - sh
+          - -c
+          - | 
+            #! /bin/sh
+            set -eux
+            iptables -t nat -A OUTPUT -p tcp -d 169.254.169.254 --dport 80 -j DNAT --to-destination 127.0.0.1:5000
+            # not sure if prerouting is required but w.e
+            iptables -t nat -A PREROUTING -p tcp -d 169.254.169.254 --dport 80 -j DNAT --to-destination 127.0.0.1:5000
+            echo "done setting iptables rules" 
+
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -25,14 +50,18 @@ spec:
                       - linux
       containers:
       - name: imds-emulator
-        command: 
-        - "./fakeIMDS.sh" 
-        - "All"
-        - "Scheduled"
         image: cljshafer/imds_emulator:latest
         imagePullPolicy: Always
+        command:
+        - "python3"
+        - "/fakeIMDS/app/main.py"
         ports:
         - containerPort: 5000
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
         volumeMounts:
         - name: app
           mountPath: /fakeIMDS/app
@@ -126,15 +155,10 @@ spec:
           name: node-problem-detector-config
           defaultMode: 0777
           items:
-          - key: fakeData.yaml
-            path: fakeData.yaml
+          - key: fakedata.yaml
+            path: fakedata.yaml
           - key: main.py
-            path: main.py
-          - key: fakeIMDS.sh
-            path: fakeIMDS.sh
-          
-
-
+            path: main.py       
 
       tolerations:
         - effect: NoSchedule
